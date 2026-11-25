@@ -34,11 +34,18 @@ async function run (event, { client = new BitbucketClient(), budgetMs = BUDGET_M
       logger.error(`Merge check ${what} could not run: ${done.error.stack || done.error.message}`)
       return { success: false, message: OUTAGE }
     }
-    logger.info(`Merge check ${what}: ${done.verdict.success ? 'pass' : 'fail'}`)
+    logger.info(`Merge check ${what}: ${done.verdict.success ? 'pass' : 'fail'}${ruleCodes(done.verdict.message)}`)
     return done.verdict
   } finally {
     clearTimeout(timer)
   }
+}
+
+// The rule codes a verdict names, for the log: enough to tell why a check
+// failed without writing anyone's commit messages into the app's logs.
+function ruleCodes (message) {
+  const codes = [...new Set(String(message).match(/\bCC\d{3}\b/g) || [])]
+  return codes.length ? ` (${codes.join(', ')})` : ''
 }
 
 // Forge calls the handler with (event, context).

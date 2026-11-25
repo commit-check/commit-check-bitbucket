@@ -21,6 +21,16 @@ test('a failing verdict is logged as one', async () => {
   expect(log.info).toHaveBeenCalledWith('Merge check undefined#undefined (unknown trigger): fail')
 })
 
+test('a failing verdict logs the rule codes it names, not the messages', async () => {
+  jest.spyOn(mergeCheck, 'runMergeCheck').mockResolvedValue({
+    success: false,
+    message: 'Commit message failed (2 of 4 checks). abc1234 "fix stuff": CC001 ... CC202 ... CC001 ...'
+  })
+  const log = logger()
+  await handler.runWith(event, { client: {}, logger: log })
+  expect(log.info).toHaveBeenCalledWith('Merge check {repo}#1 (on-code-pushed): fail (CC001, CC202)')
+})
+
 test('a check that cannot run fails, saying nothing was validated', async () => {
   jest.spyOn(mergeCheck, 'runMergeCheck').mockRejectedValue(new Error('Bitbucket answered 500'))
   const log = logger()
