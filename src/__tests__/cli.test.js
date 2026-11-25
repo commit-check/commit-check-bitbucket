@@ -106,6 +106,25 @@ describe('the CLI in Pyodide', () => {
     expect(JSON.parse(res.stdout).checks.map((c) => [c.rule_id, c.status])).toEqual([['CC013', 'fail']])
   })
 
+  test('a squash message is checked without an author, as git with no identity would', async () => {
+    // Bitbucket does not tell a merge check who presses Merge, so the
+    // squash commit's author is unknown when the CLI asks git var.
+    const res = await cli.runCli({
+      argv: ['.commit-check-message', '-m', '-n', '-e', '-b', '--format', 'json', '--no-banner'],
+      files: [
+        { path: 'cchk.toml', text: '[commit]\nai_attribution = "forbid"\n' },
+        { path: '.commit-check-message', text: 'bad message' }
+      ],
+      commits: [{ sha: sha(1), message: 'feat: x\n', parents: [], author }],
+      head: sha(1),
+      branch: 'feature/x'
+    })
+    expect(res.unsupported).toEqual([])
+    const status = Object.fromEntries(JSON.parse(res.stdout).checks.map((c) => [c.rule_id, c.status]))
+    expect(status.CC001).toBe('fail')
+    expect(status.CC017).not.toBe('fail')
+  })
+
   test('a git command it does not know fails as git would, and is listed', async () => {
     const res = await cli.runCli({ argv: ['-t', '--format', 'json', '--no-banner'], files: [], commits: [], head: null, branch: '' })
     expect(res.unsupported).toEqual(['git tag --points-at HEAD'])
