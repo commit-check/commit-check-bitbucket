@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@forge/api": "^8.5.1",
-    "pyodide": "0.28.3"
+    "pyodide": "314.0.8"
   },
   "devDependencies": {
     "esbuild": "^0.25.11",
