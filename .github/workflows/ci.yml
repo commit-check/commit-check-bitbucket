@@ -1,0 +1,44 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        # Nothing after checkout needs authenticated git.
+        persist-credentials: false
+
+    - name: Use Node.js 22.x
+      # Forge runs the function on Node.js 22 (manifest.yml).
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 22.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install the commit-check CLI the app pins
+      # The tests compare the CLI in Pyodide with the real one, same version.
+      run: pipx install "commit-check==$(node -p "require('./package.json').commitCheck.version")"
+
+    - name: Run linting
+      run: npm run lint
+
+    - name: Run tests
+      run: npm test
+
+    - name: Build the deploy package
+      run: npm run build

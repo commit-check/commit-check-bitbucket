@@ -1,0 +1,41 @@
+# The Bitbucket Cloud app: two merge checks, run entirely on Atlassian. The
+# function runs the commit-check CLI in Pyodide and reads the pull request
+# through Forge; it calls nothing outside Atlassian. See README.md.
+modules:
+  bitbucket:mergeCheck:
+    # Every commit of the pull request, the branch name, and the description
+    # when the config asks for it. Runs again on each push.
+    - key: commit-check
+      function: check
+      name: Commit Check
+      description: Commit messages, branch name and authors follow the repository's commit-check rules.
+      triggers:
+        - on-code-pushed
+    # The message a squash merge is about to land, which only exists once
+    # someone presses Merge.
+    - key: commit-check-merge-message
+      function: check
+      name: Commit Check merge message
+      description: The commit message a squash merge lands follows the repository's commit-check rules.
+      triggers:
+        - on-merge
+  function:
+    - key: check
+      handler: index.run
+permissions:
+  scopes:
+    - read:pullrequest:bitbucket
+    - read:repository:bitbucket
+app:
+  # Written by `forge register`.
+  id: ari:cloud:ecosystem::app/00000000-0000-0000-0000-000000000000
+  runtime:
+    name: nodejs22.x
+    # Pyodide and the CLI take about 170 MB; more memory is also more CPU,
+    # which shortens the first check after a cold start.
+    memoryMB: 1024
+  package:
+    # out/ is built by `npm run build` and uploaded as it is, so Pyodide's
+    # WebAssembly and the CLI wheel ship as files (scripts/build.js).
+    bundler: manual@2026
+    path: out
