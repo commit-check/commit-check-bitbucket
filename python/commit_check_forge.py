@@ -115,6 +115,11 @@ def _git(repo: _Repository, args: list[str]) -> tuple[int, str, str]:
     if args[:1] == ["config"]:
         # No git config: identities come from the commits themselves.
         return 1, "", ""
+    if args in (["var", "GIT_AUTHOR_IDENT"], ["var", "GIT_COMMITTER_IDENT"]):
+        # Who a commit not made yet would be by: here, a squash merge whose
+        # author is whoever presses Merge, which Bitbucket does not tell
+        # merge checks. Answer as git does with no identity configured.
+        return 128, "", "fatal: unable to auto-detect email address\n"
     if args[:3] == ["log", "-n", "1"] and len(args) == 5 and args[3].startswith("--pretty=format:"):
         sha = repo.resolve(args[4])
         if sha is None:
