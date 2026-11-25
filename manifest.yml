@@ -27,7 +27,8 @@ permissions:
     - read:pullrequest:bitbucket
     - read:repository:bitbucket
 app:
-  # Written by `forge register`.
+  # A placeholder: the Deploy workflow writes the real id from the
+  # FORGE_APP_ID repository variable (README.md, Deploying).
   id: ari:cloud:ecosystem::app/00000000-0000-0000-0000-000000000000
   runtime:
     name: nodejs22.x
