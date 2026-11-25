@@ -88,25 +88,41 @@ what the checks report, so it is bumped by hand.
 
 ## Deploying
 
-1. Install the Forge CLI and log in with an Atlassian API token:
-   `npm install -g @forge/cli` then `forge login`.
-2. Register the app, from this directory: `forge register "Commit Check"`.
-   This writes the real `app.id` into `manifest.yml`; commit that change.
-3. Install the dependencies, build, and deploy: `npm ci`, `npm run build`,
-   then `forge deploy`.
-   The package is built by hand (`app.package.bundler: manual@2026`, a Forge
-   preview feature), because Forge's default bundler cannot ship Pyodide's
-   WebAssembly.
-4. Install in a test workspace: `forge install`, choosing Bitbucket and the
-   workspace.
-5. In Bitbucket, a workspace admin turns on **Custom merge checks** in the
+Deploys run from GitHub Actions: the **Deploy** workflow, started by hand
+from the Actions tab. It builds the package, runs `forge lint` and
+`forge deploy`, and can then install the app on a workspace.
+
+Once, before the first deploy:
+
+1. Register the app with the Forge CLI (`npm install -g @forge/cli`,
+   `forge login`, then `forge register "Commit Check"` in this directory).
+   It prints the app id (`ari:cloud:ecosystem::app/...`) and writes it into
+   your local `manifest.yml`. Do not commit that line: the repository keeps a
+   placeholder, so a fork cannot deploy over the real app.
+2. In the repository's **Settings > Secrets and variables > Actions**, add the
+   variable `FORGE_APP_ID` (the app id) and the secrets `FORGE_EMAIL` and
+   `FORGE_API_TOKEN` (an Atlassian API token from
+   [id.atlassian.com](https://id.atlassian.com/manage-profile/security/api-tokens)).
+
+Each deploy:
+
+1. Run **Deploy** with the environment (development, staging or production).
+   Code changes reach existing installations on their own.
+2. The first time in an environment, set **install** to `install` and
+   **workspace** to `bitbucket.org/<workspace>`. After a change to the
+   manifest's scopes, run it with `upgrade` so installations accept them.
+3. In Bitbucket, a workspace admin turns on **Custom merge checks** in the
    workspace settings; then a repository admin enables **Commit Check** (and
    **Commit Check merge message** for squash merges) under the repository's
    merge checks. On Premium, tick **Required** to block merges.
-6. Open a pull request and push a commit. `forge logs` shows
+4. Open a pull request and push a commit. `forge logs` shows
    `Merge check {repo}#1 (on-code-pushed): pass`.
 
-For production, `forge deploy -e production` and `forge install -e production`.
+The package is built by hand (`app.package.bundler: manual@2026`, a Forge
+preview feature), because Forge's default bundler cannot ship Pyodide's
+WebAssembly. To deploy from a laptop instead: `npm ci`, `npm run build`,
+`forge deploy`, `forge install`.
+
 Atlassian lists Bitbucket Forge apps on the Marketplace as information only
 (no install button, no billing); installs go through the app's distribution
 link in the developer console. The Forge CLI's eligibility check shows whether the app

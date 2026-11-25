@@ -1,0 +1,122 @@
+name: Deploy
+
+# Manual on purpose: a push to main should not move an app that workspaces are
+# relying on. Run it from the Actions tab and pick the environment; optionally
+# install the app on a workspace, or upgrade it there after a scope change.
+# A deploy without a scope change reaches existing installations on its own.
+#
+# Configuration, set once in the repository settings:
+#   vars.FORGE_APP_ID       ari:cloud:ecosystem::app/<uuid>, printed by `forge register`
+#   secrets.FORGE_EMAIL     the Atlassian account's email
+#   secrets.FORGE_API_TOKEN id.atlassian.com > Security > API tokens
+#
+# manifest.yml keeps a placeholder app id, so a fork cannot deploy over the
+# real app; this workflow writes the real one in before deploying.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Forge environment
+        type: choice
+        options: [development, staging, production]
+        default: development
+      install:
+        description: After deploying, install on the workspace (first time) or upgrade it (new scopes)
+        type: choice
+        options: [none, install, upgrade]
+        default: none
+      workspace:
+        description: Bitbucket workspace for install or upgrade, e.g. bitbucket.org/my-workspace
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+# One deploy at a time per environment, queued rather than raced.
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # A command waiting on a prompt would otherwise sit until GitHub's 6-hour limit.
+    timeout-minutes: 30
+    env:
+      FORGE_USAGE_ANALYTICS: 'false'
+      # FORGE_EMAIL and FORGE_API_TOKEN go only to the steps that talk to
+      # Atlassian, so dependency install scripts never see the token.
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Use Node.js 24.x
+      # The Forge CLI rejects Node 22.23.1, which is what '22.x' resolves to.
+      # The function itself still runs on Node 22 (manifest.yml).
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24.x
+        cache: 'npm'
+
+    - name: Check the inputs
+      env:
+        INSTALL: ${{ inputs.install }}
+        WORKSPACE: ${{ inputs.workspace }}
+      run: |
+        if [ "$INSTALL" != none ] && [ -z "$WORKSPACE" ]; then
+          echo "::error::Install or upgrade needs a workspace, e.g. bitbucket.org/my-workspace."
+          exit 1
+        fi
+
+    - name: Install the Forge CLI
+      # keytar, a native module of the CLI, builds against libsecret.
+      run: |
+        sudo apt-get update && sudo apt-get install -y libsecret-1-dev
+        npm install -g @forge/cli@16.0.0
+        forge settings set usage-analytics false
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Write the app id into manifest.yml
+      env:
+        APP_ID: ${{ vars.FORGE_APP_ID }}
+      run: |
+        if ! printf '%s' "$APP_ID" | grep -Eq '^ari:cloud:ecosystem::app/[0-9a-fA-F-]{36}$'; then
+          echo "::error::Set the repository variable FORGE_APP_ID to the ari that 'forge register' printed."
+          exit 1
+        fi
+        sed -i -E "s|^  id: ari:cloud:ecosystem::app/.*$|  id: ${APP_ID}|" manifest.yml
+        grep -q "^  id: ${APP_ID}$" manifest.yml
+
+    - name: Build the deploy package
+      run: npm run build
+
+    - name: Forge lint
+      env:
+        FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+        FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+      run: forge lint
+
+    - name: Forge deploy
+      env:
+        FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+        FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        ENVIRONMENT: ${{ inputs.environment }}
+      run: forge deploy --environment "$ENVIRONMENT" --non-interactive
+
+    - name: Forge install
+      if: inputs.install != 'none'
+      env:
+        FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+        FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        INSTALL: ${{ inputs.install }}
+        WORKSPACE: ${{ inputs.workspace }}
+      run: |
+        set -- --environment "$ENVIRONMENT" --product Bitbucket --site "$WORKSPACE" --confirm-scopes --non-interactive
+        if [ "$INSTALL" = upgrade ]; then set -- "$@" --upgrade; fi
+        forge install "$@"
