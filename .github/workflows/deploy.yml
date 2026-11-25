@@ -7,6 +7,7 @@ name: Deploy
 #
 # Configuration, set once in the repository settings:
 #   vars.FORGE_APP_ID       ari:cloud:ecosystem::app/<uuid>, printed by `forge register`
+#                           (a secret of the same name works too)
 #   secrets.FORGE_EMAIL     the Atlassian account's email
 #   secrets.FORGE_API_TOKEN id.atlassian.com > Security > API tokens
 #
@@ -83,10 +84,10 @@ jobs:
 
     - name: Write the app id into manifest.yml
       env:
-        APP_ID: ${{ vars.FORGE_APP_ID }}
+        APP_ID: ${{ vars.FORGE_APP_ID || secrets.FORGE_APP_ID }}
       run: |
         if ! printf '%s' "$APP_ID" | grep -Eq '^ari:cloud:ecosystem::app/[0-9a-fA-F-]{36}$'; then
-          echo "::error::Set the repository variable FORGE_APP_ID to the ari that 'forge register' printed."
+          echo "::error::Set FORGE_APP_ID (a repository variable or secret) to the ari that 'forge register' printed."
           exit 1
         fi
         sed -i -E "s|^  id: ari:cloud:ecosystem::app/.*$|  id: ${APP_ID}|" manifest.yml
