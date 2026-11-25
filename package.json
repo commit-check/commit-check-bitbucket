@@ -1,0 +1,46 @@
+{
+  "name": "commit-check-bitbucket",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Commit Check for Bitbucket Cloud: merge checks that run the commit-check CLI on Forge, in Pyodide.",
+  "license": "MIT",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commit-check/commit-check-bitbucket.git"
+  },
+  "scripts": {
+    "fetch-cli": "node scripts/fetch-cli.js",
+    "build": "node scripts/fetch-cli.js && node scripts/build.js",
+    "test": "node scripts/fetch-cli.js && node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "lint": "eslint src/ scripts/"
+  },
+  "commitCheck": {
+    "version": "2.24.0",
+    "sha256": "a724e907600f7c0224149807856316dce669893640e148f7b374b9defb62d2d1"
+  },
+  "dependencies": {
+    "@forge/api": "^8.5.1",
+    "pyodide": "0.28.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.11",
+    "jest": "^30.5.2",
+    "eslint": "^10.13.0",
+    "neostandard": "^0.14.1"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
+    "coverageReporters": [
+      "text"
+    ],
+    "testTimeout": 30000
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

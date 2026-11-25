@@ -1,0 +1,32 @@
+# Dependabot version updates, monthly and grouped. The commit-check CLI
+# version is pinned in package.json ("commitCheck") and bumped by hand: a
+# new rule engine changes what the checks report.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      npm-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+      npm-major:
+        update-types:
+          - major
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      github-actions:
+        patterns:
+          - "*"
