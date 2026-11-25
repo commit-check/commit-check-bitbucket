@@ -92,7 +92,8 @@ what the checks report, so it is bumped by hand.
    `npm install -g @forge/cli` then `forge login`.
 2. Register the app, from this directory: `forge register "Commit Check"`.
    This writes the real `app.id` into `manifest.yml`; commit that change.
-3. Build and deploy: `npm run build` then `forge deploy`.
+3. Install the dependencies, build, and deploy: `npm ci`, `npm run build`,
+   then `forge deploy`.
    The package is built by hand (`app.package.bundler: manual@2026`, a Forge
    preview feature), because Forge's default bundler cannot ship Pyodide's
    WebAssembly.
