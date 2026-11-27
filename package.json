@@ -16,8 +16,8 @@
     "lint": "eslint src/ scripts/"
   },
   "commitCheck": {
-    "version": "2.24.0",
-    "sha256": "a724e907600f7c0224149807856316dce669893640e148f7b374b9defb62d2d1"
+    "version": "2.25.0",
+    "sha256": "9a26c17d03efd5abc2c6ed355bf89a497ec0eceedfeba061f7a753d0f60ae4d1"
   },
   "dependencies": {
     "@forge/api": "^8.5.1",
